@@ -1,24 +1,20 @@
-// react
 import React, { useState, useEffect, useRef } from 'react';
-
-// openlayers
 import Map from 'ol/Map'
 import View from 'ol/View'
-import TileLayer from 'ol/layer/Tile'
 import VectorLayer from 'ol/layer/Vector'
 import VectorSource from 'ol/source/Vector'
-import XYZ from 'ol/source/XYZ'
 import {transform} from 'ol/proj'
-import {toStringXY} from 'ol/coordinate';
+import OSM from 'ol/source/OSM.js'
+import {Image as ImageLayer, Tile as TileLayer} from 'ol/layer'
+import ImageWMS from 'ol/source/ImageWMS'
 
-function MapWrapper(props) {
+function MapWrapper() {
   const [ map, setMap ] = useState()
   const [ featuresLayer, setFeaturesLayer ] = useState()
   const [ selectedCoord , setSelectedCoord ] = useState()
   const mapElement = useRef()
+  const mapCenter = [2800000, 10700000]
   
-  // create state ref that can be accessed in OpenLayers onclick callback function
-  //  https://stackoverflow.com/a/60643670
   const mapRef = useRef()
   mapRef.current = map
 
@@ -30,17 +26,20 @@ function MapWrapper(props) {
     const initialMap = new Map({
       target: mapElement.current,
       layers: [
-        new TileLayer({
-          source: new XYZ({
-            url: 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/tile/{z}/{y}/{x}',
-          })
+         new TileLayer({
+          source:new OSM()  
         }),
-        initalFeaturesLayer
+          new ImageLayer({
+          source: new ImageWMS({
+            url: 'https://paikkatiedot.ymparisto.fi/geoserver/inspire_ps/wms/PS.ProtectedSitesEramaaAlue?service=WMS&version=1.3.0',
+            params: {layers: 'PS.ProtectedSitesEramaaAlue'}, //tai PS.EramaaAlueet
+            crossOrigin: "Anonymous"
+          })}),
       ],
       view: new View({
         projection: 'EPSG:3857',
-        center: [0, 0],
-        zoom: 2
+        center: mapCenter,
+        zoom: 7
       }),
       controls: []
     })
@@ -49,34 +48,15 @@ function MapWrapper(props) {
     setFeaturesLayer(initalFeaturesLayer)
   },[])
 
-  useEffect( () => {
-    if (props.features.length) {
-      featuresLayer.setSource(
-        new VectorSource({
-          features: props.features
-        })
-      )
-      // fit map to feature extent (with 100px of padding)
-      map.getView().fit(featuresLayer.getSource().getExtent(), {
-        padding: [100,100,100,100]
-      })
-    }
-  },[props.features])
-
   const handleMapClick = (event) => {  
-    // get clicked coordinate using mapRef to access current React state inside OpenLayers callback
-    //  https://stackoverflow.com/a/60643670
-    const clickedCoord = mapRef.current.getCoordinateFromPixel(event.pixel);
+    const clickedCoord = mapRef.current.getCoordinateFromPixel(event.pixel)
     const transormedCoord = transform(clickedCoord, 'EPSG:3857', 'EPSG:4326')
-    setSelectedCoord( transormedCoord )   
+    console.log(transormedCoord)
   }
 
   return (      
     <div>
       <div ref={mapElement} className="map-container"></div>
-      <div className="clicked-coord-label">
-        <p>{ (selectedCoord) ? toStringXY(selectedCoord, 5) : '' }</p>
-      </div>
     </div>
   ) 
 }
