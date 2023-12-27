@@ -1,0 +1,9 @@
+.selected-coord-label{
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  background: whitesmoke;
+  border-radius: 3;
+  height: 100;
+  width: 100;
+}
